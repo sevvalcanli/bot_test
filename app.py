@@ -48,7 +48,7 @@ async def handle_message(message: types.Message):
             url_button4 = types.InlineKeyboardButton(text="Token Sniffer", url=base_url4)
             url_button5 = types.InlineKeyboardButton(text="Honeypot", url=base_url5)
             keyboard.row(url_button,url_button1).row(url_button2,url_button3).row(url_button4,url_button5)
-            await message.reply("Merhaba! Özel insan hoş geldin.", reply_markup=keyboard)
+            await message.reply("Hoş geldin, geleceğin kripto zengini!", reply_markup=keyboard)
     elif re.match('^0x[a-fA-F0-9]{40}$', text) and is_valid_ethereum_address(text):
             base_url = f"https://gopluslabs.io/token-security/1/{text}"
             base_url1 = f"https://www.dextools.io/app/en/ether/pair-explorer/{text}"
@@ -64,7 +64,7 @@ async def handle_message(message: types.Message):
             url_button4 = types.InlineKeyboardButton(text="Token Sniffer", url=base_url4)
             url_button5 = types.InlineKeyboardButton(text="Honeypot", url=base_url5)
             keyboard.row(url_button,url_button1).row(url_button2,url_button3).row(url_button4,url_button5)
-            await message.reply("Merhaba! Özel insan hoş geldin.", reply_markup=keyboard)
+            await message.reply("Hoş geldin, geleceğin kripto zengini!", reply_markup=keyboard)
     
 
 executor.start_polling(dp)
