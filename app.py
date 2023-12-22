@@ -67,7 +67,7 @@ async def handle_message(message: types.Message):
             url_button5 = types.InlineKeyboardButton(text="Honeypot", url=base_url5)
             keyboard.row(url_button,url_button1).row(url_button2,url_button3).row(url_button4,url_button5)
             await message.reply("Hoş geldin, geleceğin kripto zengini!", reply_markup=keyboard)
-    else:
+    elif len(text) > 40 and not text.startswith("0x"):
             base_url1 = f"https://www.dextools.io/app/en/solana/pair-explorer/{text}"
             base_url2 = f"https://solscan.io/token/{text}"
             base_url3 = f"https://dexscreener.com/solana/{text}"
