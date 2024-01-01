@@ -70,18 +70,7 @@ def scan_usdt_pairs():
                 kline_data = binance_client.get_klines(symbol=symbol, interval="1m", limit=2)
                 response = requests.get(f"https://api.binance.com/api/v3/ticker?symbol={symbol}&windowSize=1m", timeout=20).json()
                 response_24h = requests.get(f"https://api.binance.com/api/v3/ticker/24hr?symbol={symbol}", timeout=20).json()
-                try:
-                    response.raise_for_status()
-                    response_24h.raise_for_status()
-                except requests.exceptions.HTTPError as err:
-                    print(f"HTTP Hatası: {err}")
-                    continue
-                except requests.exceptions.ReadTimeout as e:
-                    print(f"ReadTimeout hatası: {e}")
-                    continue
-                except requests.exceptions.RequestException as err:
-                    print(f"Genel hatası: {err}")
-                    continue
+                
                 last_price = float(response["lastPrice"])
                 quote_volume_1min = float(response['quoteVolume'])
                 volume_1min = float(response['volume'])
