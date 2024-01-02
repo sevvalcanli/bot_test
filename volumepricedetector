@@ -22,7 +22,7 @@ telegram_bot = Bot(token=telegram_bot_token)
 min_price_change_percentage = 0.5
 min_volume_threshold = 500.000
 
-def send_telegram_message(message):
+async def send_telegram_message(message):
     retries = 3  # İstenen sayıda tekrar deneme
     for _ in range(retries):
         try:
@@ -61,7 +61,7 @@ def format_value(value):
     else:
         return f"{value:.2f}"
 
-def scan_usdt_pairs():
+async def scan_usdt_pairs():
     while True:
         symbols = get_binance_symbols()
 
