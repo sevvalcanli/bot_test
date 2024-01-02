@@ -20,7 +20,7 @@ telegram_bot = Bot(token=telegram_bot_token)
 
 # Eşik değerleri
 min_price_change_percentage = 0.5
-min_volume_threshold = 500.000
+min_volume_threshold = 5000
 
 async def send_telegram_message(message):
     retries = 3  # İstenen sayıda tekrar deneme
