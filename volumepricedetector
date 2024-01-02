@@ -4,6 +4,8 @@ from telegram import Bot
 import time
 from telegram.error import TimedOut
 from telegram.error import NetworkError
+import asyncio
+
 # Binance API anahtarları
 binance_api_key = "WUYmf7MkDmmhmMXEambiZfPgXN5aKDfpNX2TVIS6MoCVesuGdGYqHRNAUcB8pJJw"
 binance_api_secret = "iFlPsS4l2xxG7Ac9TS3JBdTnCen2t97h8QL8mqoD0FfvMJsPA2NO1GYHnhPWrywt"
@@ -24,14 +26,14 @@ def send_telegram_message(message):
     retries = 3  # İstenen sayıda tekrar deneme
     for _ in range(retries):
         try:
-            telegram_bot.send_message(chat_id=telegram_chat_id, text=message, parse_mode='HTML', timeout=20)
+            await telegram_bot.send_message(chat_id=telegram_chat_id, text=message, parse_mode='HTML', timeout=20)
             break  # Başarılı gönderimde döngüden çık
         except TimedOut as e:
             print(f"Timed out hatası! Tekrar denenecek. Hata: {e}")
-            time.sleep(5)
+            await time.sleep(5)
         except NetworkError as e:
             print(f"Network hatası! Tekrar denenecek. Hata: {e}")
-            time.sleep(5)
+            await time.sleep(5)
 
 def get_quote_asset(symbol):
     ticker = binance_client.get_ticker(symbol=symbol)
@@ -107,4 +109,5 @@ def scan_usdt_pairs():
                         )
                         send_telegram_message(message)
 if __name__ == "__main__":
-    scan_usdt_pairs()
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(scan_usdt_pairs())
