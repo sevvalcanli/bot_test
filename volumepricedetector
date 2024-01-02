@@ -107,6 +107,7 @@ def scan_usdt_pairs():
                             f"Number of trades:{num_trades}\n"
                             f"24h Vol: {format_value(quote_volume_24h)} USDT"
                         )
-                        send_telegram_message(message)
+                        await send_telegram_message(message)
+        await asyncio.sleep(15)
 if __name__ == "__main__":
     asyncio.run(scan_usdt_pairs())
