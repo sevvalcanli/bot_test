@@ -110,4 +110,5 @@ def scan_usdt_pairs():
                         await send_telegram_message(message)
         await asyncio.sleep(15)
 if __name__ == "__main__":
-    asyncio.run(scan_usdt_pairs())
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(scan_usdt_pairs())
