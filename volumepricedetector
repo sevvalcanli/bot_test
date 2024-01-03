@@ -82,8 +82,9 @@ async def scan_usdt_pairs():
                 price_change_percentage_24h = float(response_24h['priceChangePercent'])
                 quote_volume_24h = float(response_24h['quoteVolume'])
                 buys_amount = float(kline_data[0][9])
-                high_price = float(kline_data[0][2])
-                low_price = float(kline_data[0][2])
+                high_price = float(response['highPrice'])
+                low_price = float(response['lowPrice'])
+                open_price = float(response['openPrice'])
                 num_trades = kline_data[0][8]
                 # 1 dakikalık alım yüzdesi
                 if quote_volume_1min != 0:
@@ -100,6 +101,7 @@ async def scan_usdt_pairs():
                             f"└1 min change: {price_change_percentage_1min:.4f}% 📈\n"
                             f"High Price: {high_price:.4f}\n"
                             f"Low Price: {low_price:.4f}\n"
+                            f"Open Price: {open_price:.4f}\n"
                             f"Price Change: {price_change_1min:.4f}\n"
                             f"Weighted Average Price: {weightedAvgPrice:.4f}\n"
                             f"{format_value(quote_volume_1min)} USDT traded in 1 min\n"
