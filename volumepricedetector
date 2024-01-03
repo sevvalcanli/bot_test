@@ -24,16 +24,26 @@ min_volume_threshold = 5000
 
 async def send_telegram_message(message):
     retries = 3  # İstenen sayıda tekrar deneme
-    for _ in range(retries):
+    for attempt_number in range(1, retries + 1):
         try:
+            # Telegram mesaj gönderme işlemi
             await telegram_bot.send_message(chat_id=telegram_chat_id, text=message, parse_mode='HTML')
+            print("Mesaj başarıyla gönderildi.")
             break  # Başarılı gönderimde döngüden çık
         except TimedOut as e:
             print(f"Timed out hatası! Tekrar denenecek. Hata: {e}")
-            await time.sleep(5)
+            if attempt_number < retries:
+                print("Tekrar deneniyor...")
+                await asyncio.sleep(5)  # Belirli bir süre bekleme
+            else:
+                print("İstenen sayıda deneme yapıldı, işlem başarısız.")
         except NetworkError as e:
             print(f"Network hatası! Tekrar denenecek. Hata: {e}")
-            await time.sleep(5)
+            if attempt_number < retries:
+                print("Tekrar deneniyor...")
+                await asyncio.sleep(5)  # Belirli bir süre bekleme
+            else:
+                print("İstenen sayıda deneme yapıldı, işlem başarısız.")
 
 def get_quote_asset(symbol):
     ticker = binance_client.get_ticker(symbol=symbol)
