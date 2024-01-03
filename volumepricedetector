@@ -26,7 +26,7 @@ async def send_telegram_message(message):
     retries = 3  # İstenen sayıda tekrar deneme
     for _ in range(retries):
         try:
-            await telegram_bot.send_message(chat_id=telegram_chat_id, text=message, parse_mode='HTML', timeout=20)
+            await telegram_bot.send_message(chat_id=telegram_chat_id, text=message, parse_mode='HTML')
             break  # Başarılı gönderimde döngüden çık
         except TimedOut as e:
             print(f"Timed out hatası! Tekrar denenecek. Hata: {e}")
