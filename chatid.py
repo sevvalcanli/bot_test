@@ -10,7 +10,7 @@ def start(update, context):
     print(f"Chat ID: {chat_id}")
 
 # Telegram bot token
-TOKEN = 'YOUR_TELEGRAM_BOT_TOKEN'
+TOKEN = "6785803733:AAEpf6b5DhfCLVBC6CZILZUe86My0Kaz7x8"
 
 # Bot oluşturma
 updater = Updater(token=TOKEN, use_context=True)
