@@ -92,7 +92,7 @@ async def scan_usdt_pairs():
                     weightedAvgPrice = float(response['weightedAvgPrice'])
                     price_change_percentage_24h = float(response_24h['priceChangePercent'])
                     quote_volume_24h = float(response_24h['quoteVolume'])
-                    buys_amount = float(kline_data[0][9])
+                    buys_amount = float(kline_data[0][10])
                     high_price = float(response['highPrice'])
                     low_price = float(response['lowPrice'])
                     open_price = float(response['openPrice'])
