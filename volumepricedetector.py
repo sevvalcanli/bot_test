@@ -12,7 +12,7 @@ binance_api_secret = "iFlPsS4l2xxG7Ac9TS3JBdTnCen2t97h8QL8mqoD0FfvMJsPA2NO1GYHnh
 client = Client(binance_api_key, binance_api_secret)
 # Telegram bot token
 telegram_bot_token = "6785803733:AAEpf6b5DhfCLVBC6CZILZUe86My0Kaz7x8"
-telegram_chat_id = "-4052303995"
+telegram_chat_id = "-1001900502503"
 
 # Binance ve Telegram bağlantıları
 binance_client = Client(api_key=binance_api_key, api_secret=binance_api_secret)
