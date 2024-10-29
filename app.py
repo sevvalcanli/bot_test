@@ -24,6 +24,7 @@ async def is_valid_bsc_address(address):
     data = response.json()
     return data['result'] != "0"
 
+# Mesaj handler'ını kaydet
 @dp.message_handler()
 async def handle_message(message: types.Message):
     text = message.text
