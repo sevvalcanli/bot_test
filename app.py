@@ -1,5 +1,5 @@
 from aiogram import Bot, Dispatcher, types
-from aiogram.utils import executor
+from aiogram.utils import start_polling  # Update this line
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 import re
 import requests
@@ -90,4 +90,4 @@ async def handle_message(message: types.Message):
         await message.reply("Hoş geldin, geleceğin kripto zengini!", reply_markup=keyboard)
 
 if __name__ == "__main__":
-    executor.start_polling(dp, skip_updates=True)
+    start_polling(dp, skip_updates=True)  # Updated this line
