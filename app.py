@@ -26,7 +26,6 @@ async def is_valid_bsc_address(address):
 
 @dp.message()
 async def handle_message(message: types.Message):
-    # Mesaj metnini kontrol et
     text = message.text
     if text is None:
         return  # Eğer metin yoksa, fonksiyonu burada sonlandır
@@ -41,9 +40,8 @@ async def handle_message(message: types.Message):
                 f"https://tokensniffer.com/token/bsc/{text}",
                 f"https://honeypot.is/?address={text}"
             ]
-            keyboard = InlineKeyboardMarkup(row_width=2)  # Düğmeleri 2'li gruplar halinde göster
-            for url in base_urls:
-                keyboard.add(InlineKeyboardButton(text="Link", url=url))
+            buttons = [InlineKeyboardButton(text="Link", url=url) for url in base_urls]
+            keyboard = InlineKeyboardMarkup(inline_keyboard=[buttons])
             await message.reply("Hoş geldin, geleceğin kripto zengini!", reply_markup=keyboard)
         elif await is_valid_ethereum_address(text):
             base_urls = [
@@ -54,9 +52,8 @@ async def handle_message(message: types.Message):
                 f"https://tokensniffer.com/token/eth/{text}",
                 f"https://honeypot.is/ethereum?address={text}"
             ]
-            keyboard = InlineKeyboardMarkup(row_width=2)
-            for url in base_urls:
-                keyboard.add(InlineKeyboardButton(text="Link", url=url))
+            buttons = [InlineKeyboardButton(text="Link", url=url) for url in base_urls]
+            keyboard = InlineKeyboardMarkup(inline_keyboard=[buttons])
             await message.reply("Hoş geldin, geleceğin kripto zengini!", reply_markup=keyboard)
     elif " " not in text and 44 >= len(text) >= 40 and not text.startswith("0x"):
         base_urls = [
@@ -65,9 +62,8 @@ async def handle_message(message: types.Message):
             f"https://dexscreener.com/solana/{text}",
             f"https://rugcheck.xyz/tokens/{text}"
         ]
-        keyboard = InlineKeyboardMarkup(row_width=2)
-        for url in base_urls:
-            keyboard.add(InlineKeyboardButton(text="Link", url=url))
+        buttons = [InlineKeyboardButton(text="Link", url=url) for url in base_urls]
+        keyboard = InlineKeyboardMarkup(inline_keyboard=[buttons])
         await message.reply("Hoş geldin, geleceğin kripto zengini!", reply_markup=keyboard)
 
 if __name__ == "__main__":
