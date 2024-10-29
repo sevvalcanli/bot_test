@@ -26,7 +26,11 @@ async def is_valid_bsc_address(address):
 
 @dp.message()
 async def handle_message(message: types.Message):
+    # Mesaj metnini kontrol et
     text = message.text
+    if text is None:
+        return  # Eğer metin yoksa, fonksiyonu burada sonlandır
+
     if re.match('^0x[a-fA-F0-9]{40}$', text):
         if await is_valid_bsc_address(text):
             base_urls = [
