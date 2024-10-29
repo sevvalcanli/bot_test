@@ -67,7 +67,8 @@ async def handle_message(message: types.Message):
             ]
         
         buttons = [InlineKeyboardButton(text=label, url=url) for label, url in zip(button_labels, base_urls)]
-        keyboard = InlineKeyboardMarkup(inline_keyboard=[buttons])
+        keyboard = InlineKeyboardMarkup(row_width=2)  # Set row width to 2 for two buttons per row
+        keyboard.add(*buttons)  # Add buttons to the keyboard
         await message.reply("Hoş geldin, geleceğin kripto zengini!", reply_markup=keyboard)
     
     elif " " not in text and 44 >= len(text) >= 40 and not text.startswith("0x"):
@@ -85,7 +86,8 @@ async def handle_message(message: types.Message):
         ]
         
         buttons = [InlineKeyboardButton(text=label, url=url) for label, url in zip(button_labels, base_urls)]
-        keyboard = InlineKeyboardMarkup(inline_keyboard=[buttons])
+        keyboard = InlineKeyboardMarkup(row_width=2)  # Set row width to 2 for two buttons per row
+        keyboard.add(*buttons)  # Add buttons to the keyboard
         await message.reply("Hoş geldin, geleceğin kripto zengini!", reply_markup=keyboard)
 
 if __name__ == "__main__":
