@@ -41,7 +41,7 @@ async def handle_message(message: types.Message):
                 f"https://tokensniffer.com/token/bsc/{text}",
                 f"https://honeypot.is/?address={text}"
             ]
-            keyboard = InlineKeyboardMarkup()
+            keyboard = InlineKeyboardMarkup(row_width=2)  # Düğmeleri 2'li gruplar halinde göster
             for url in base_urls:
                 keyboard.add(InlineKeyboardButton(text="Link", url=url))
             await message.reply("Hoş geldin, geleceğin kripto zengini!", reply_markup=keyboard)
@@ -54,7 +54,7 @@ async def handle_message(message: types.Message):
                 f"https://tokensniffer.com/token/eth/{text}",
                 f"https://honeypot.is/ethereum?address={text}"
             ]
-            keyboard = InlineKeyboardMarkup()
+            keyboard = InlineKeyboardMarkup(row_width=2)
             for url in base_urls:
                 keyboard.add(InlineKeyboardButton(text="Link", url=url))
             await message.reply("Hoş geldin, geleceğin kripto zengini!", reply_markup=keyboard)
@@ -65,7 +65,7 @@ async def handle_message(message: types.Message):
             f"https://dexscreener.com/solana/{text}",
             f"https://rugcheck.xyz/tokens/{text}"
         ]
-        keyboard = InlineKeyboardMarkup()
+        keyboard = InlineKeyboardMarkup(row_width=2)
         for url in base_urls:
             keyboard.add(InlineKeyboardButton(text="Link", url=url))
         await message.reply("Hoş geldin, geleceğin kripto zengini!", reply_markup=keyboard)
