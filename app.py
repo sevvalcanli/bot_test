@@ -1,81 +1,89 @@
 from aiogram import Bot, Dispatcher, types
-from aiogram.utils import executor
-from aiogram.types import InlineKeyboardButton,InlineKeyboardMarkup
 import re
 import requests
 import json
+import logging
+import asyncio
 
+# Setup logging
+logging.basicConfig(level=logging.INFO)
 
-with open("token.txt","r") as f:
-     TOKEN = f.read()
-bot =Bot(token=TOKEN)
+# Read the token from file
+with open("token.txt", "r") as f:
+    TOKEN = f.read().strip()
 
-dp = Dispatcher(bot)
-    
+bot = Bot(token=TOKEN)
+dp = Dispatcher()
+
+# Function to validate Ethereum address
 def is_valid_ethereum_address(address):
     url = f"https://api.bscscan.com/api?module=stats&action=tokenCsupply&contractaddress={address}&apikey=3XS9YREEBUZ3HS5CBQMI7UA97CYSRMTI2M"
     response = requests.get(url)
     data = response.json()
-    if data['result'] == "0":
-        return True
-    return False
+    return data['result'] == "0"
 
+# Function to validate BSC address
 def is_valid_bsc_address(address):
     url = f"https://api.bscscan.com/api?module=stats&action=tokenCsupply&contractaddress={address}&apikey=3XS9YREEBUZ3HS5CBQMI7UA97CYSRMTI2M"
     response = requests.get(url)
     data = response.json()
-    if data['result'] != "0":
-        return True
-    return False
-
-
+    return data['result'] != "0"
 
 @dp.message_handler()
 async def handle_message(message: types.Message):
-    text=message.text
-    if re.match('^0x[a-fA-F0-9]{40}$', text) and is_valid_bsc_address(text):
-            base_url = f"https://gopluslabs.io/token-security/56/{text}"
-            base_url1 = f"https://www.dextools.io/app/en/bnb/pair-explorer/{text}"
-            base_url2 = f"https://bscscan.com/token/{text}"
-            base_url3 =f"https://dexscreener.com/bsc/{text}"
-            base_url4 = f"https://tokensniffer.com/token/bsc/{text}"
-            base_url5 = f"https://honeypot.is/?address={text}"
-            keyboard = types.InlineKeyboardMarkup()
-            url_button = types.InlineKeyboardButton(text="GoPlus", url=base_url)
-            url_button1 = types.InlineKeyboardButton(text="Chart", url=base_url1)
-            url_button2 = types.InlineKeyboardButton(text="BSCScan", url=base_url2)
-            url_button3 = types.InlineKeyboardButton(text="Dex Screener", url=base_url3)
-            url_button4 = types.InlineKeyboardButton(text="Token Sniffer", url=base_url4)
-            url_button5 = types.InlineKeyboardButton(text="Honeypot", url=base_url5)
-            keyboard.row(url_button,url_button1).row(url_button2,url_button3).row(url_button4,url_button5)
-            await message.reply("Hoş geldin, geleceğin kripto zengini!", reply_markup=keyboard)
-    elif re.match('^0x[a-fA-F0-9]{40}$', text) and is_valid_ethereum_address(text):
-            base_url = f"https://gopluslabs.io/token-security/1/{text}"
-            base_url1 = f"https://www.dextools.io/app/en/ether/pair-explorer/{text}"
-            base_url2 = f"https://etherscan.io/token/{text}"
-            base_url3 = f"https://dexscreener.com/ethereum/{text}"
-            base_url4 = f"https://tokensniffer.com/token/eth/{text}"
-            base_url5 = f"https://honeypot.is/ethereum?address={text}"
-            keyboard = types.InlineKeyboardMarkup()
-            url_button = types.InlineKeyboardButton(text="GoPlus", url=base_url)
-            url_button1 = types.InlineKeyboardButton(text="Chart", url=base_url1)
-            url_button2 = types.InlineKeyboardButton(text="ETHScan", url=base_url2)
-            url_button3 = types.InlineKeyboardButton(text="Dex Screener", url=base_url3)
-            url_button4 = types.InlineKeyboardButton(text="Token Sniffer", url=base_url4)
-            url_button5 = types.InlineKeyboardButton(text="Honeypot", url=base_url5)
-            keyboard.row(url_button,url_button1).row(url_button2,url_button3).row(url_button4,url_button5)
-            await message.reply("Hoş geldin, geleceğin kripto zengini!", reply_markup=keyboard)
-    elif " " not in text and 44 >= len(text) >= 40  and not text.startswith("0x"):
-            base_url1 = f"https://www.dextools.io/app/en/solana/pair-explorer/{text}"
-            base_url2 = f"https://solscan.io/token/{text}"
-            base_url3 = f"https://dexscreener.com/solana/{text}"
-            base_url4 = f"https://rugcheck.xyz/tokens/{text}"
-            keyboard = types.InlineKeyboardMarkup()
-            url_button1 = types.InlineKeyboardButton(text="Chart", url=base_url1)
-            url_button2 = types.InlineKeyboardButton(text="SOLScan", url=base_url2)
-            url_button3 = types.InlineKeyboardButton(text="Dex Screener", url=base_url3)
-            url_button4 = types.InlineKeyboardButton(text="Rug Check", url=base_url4)
-            keyboard.row(url_button1,url_button2).row(url_button3,url_button4)
-            await message.reply("Hoş geldin, geleceğin kripto zengini!", reply_markup=keyboard)
+    text = message.text
+    if re.match(r'^0x[a-fA-F0-9]{40}$', text) and is_valid_bsc_address(text):
+        keyboard = types.InlineKeyboardMarkup()
+        base_urls = [
+            f"https://gopluslabs.io/token-security/56/{text}",
+            f"https://www.dextools.io/app/en/bnb/pair-explorer/{text}",
+            f"https://bscscan.com/token/{text}",
+            f"https://dexscreener.com/bsc/{text}",
+            f"https://tokensniffer.com/token/bsc/{text}",
+            f"https://honeypot.is/?address={text}",
+        ]
+        button_labels = ["GoPlus", "Chart", "BSCScan", "Dex Screener", "Token Sniffer", "Honeypot"]
 
-executor.start_polling(dp)
+        for label, url in zip(button_labels, base_urls):
+            keyboard.add(types.InlineKeyboardButton(text=label, url=url))
+
+        await message.reply("Hoş geldin, geleceğin kripto zengini!", reply_markup=keyboard)
+
+    elif re.match(r'^0x[a-fA-F0-9]{40}$', text) and is_valid_ethereum_address(text):
+        keyboard = types.InlineKeyboardMarkup()
+        base_urls = [
+            f"https://gopluslabs.io/token-security/1/{text}",
+            f"https://www.dextools.io/app/en/ether/pair-explorer/{text}",
+            f"https://etherscan.io/token/{text}",
+            f"https://dexscreener.com/ethereum/{text}",
+            f"https://tokensniffer.com/token/eth/{text}",
+            f"https://honeypot.is/ethereum?address={text}",
+        ]
+        button_labels = ["GoPlus", "Chart", "ETHScan", "Dex Screener", "Token Sniffer", "Honeypot"]
+
+        for label, url in zip(button_labels, base_urls):
+            keyboard.add(types.InlineKeyboardButton(text=label, url=url))
+
+        await message.reply("Hoş geldin, geleceğin kripto zengini!", reply_markup=keyboard)
+
+    elif " " not in text and 44 >= len(text) >= 40 and not text.startswith("0x"):
+        keyboard = types.InlineKeyboardMarkup()
+        base_urls = [
+            f"https://www.dextools.io/app/en/solana/pair-explorer/{text}",
+            f"https://solscan.io/token/{text}",
+            f"https://dexscreener.com/solana/{text}",
+            f"https://rugcheck.xyz/tokens/{text}",
+        ]
+        button_labels = ["Chart", "SOLScan", "Dex Screener", "Rug Check"]
+
+        for label, url in zip(button_labels, base_urls):
+            keyboard.add(types.InlineKeyboardButton(text=label, url=url))
+
+        await message.reply("Hoş geldin, geleceğin kripto zengini!", reply_markup=keyboard)
+
+# Start polling
+async def on_startup():
+    logging.info("Bot is online!")
+
+if __name__ == '__main__':
+    asyncio.run(dp.start_polling(on_startup=on_startup))
