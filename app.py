@@ -72,13 +72,13 @@ async def handle_message(message: types.Message):
     
     elif " " not in text and 44 >= len(text) >= 40 and not text.startswith("0x"):
         base_urls = [
-            f"https://www.dextools.io/app/en/solana/pair-explorer/{text}",
+            f"https://bullx.io/terminal?chainId=1399811149&address={text}",
             f"https://solscan.io/token/{text}",
             f"https://dexscreener.com/solana/{text}",
             f"https://rugcheck.xyz/tokens/{text}"
         ]
         button_labels = [
-            "Dextools Solana",
+            "Bullx",
             "SOLScan",
             "Dex Screener",
             "Rug Check"
