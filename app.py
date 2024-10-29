@@ -1,8 +1,8 @@
-from aiogram import Bot, Dispatcher, types
 import re
 import requests
-import json
 import asyncio
+from aiogram import Bot, Dispatcher, types
+from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
 # Token'ı dosyadan oku
 with open("token.txt", "r") as f:
@@ -24,8 +24,7 @@ async def is_valid_bsc_address(address):
     data = response.json()
     return data['result'] != "0"
 
-# Mesaj handler'ını kaydet
-@dp.message_handler()
+@dp.message()
 async def handle_message(message: types.Message):
     text = message.text
     if re.match('^0x[a-fA-F0-9]{40}$', text):
@@ -38,9 +37,9 @@ async def handle_message(message: types.Message):
                 f"https://tokensniffer.com/token/bsc/{text}",
                 f"https://honeypot.is/?address={text}"
             ]
-            keyboard = types.InlineKeyboardMarkup()
-            buttons = [types.InlineKeyboardButton(text="Link", url=url) for url in base_urls]
-            keyboard.add(*buttons)
+            keyboard = InlineKeyboardMarkup()
+            for url in base_urls:
+                keyboard.add(InlineKeyboardButton(text="Link", url=url))
             await message.reply("Hoş geldin, geleceğin kripto zengini!", reply_markup=keyboard)
         elif await is_valid_ethereum_address(text):
             base_urls = [
@@ -51,9 +50,9 @@ async def handle_message(message: types.Message):
                 f"https://tokensniffer.com/token/eth/{text}",
                 f"https://honeypot.is/ethereum?address={text}"
             ]
-            keyboard = types.InlineKeyboardMarkup()
-            buttons = [types.InlineKeyboardButton(text="Link", url=url) for url in base_urls]
-            keyboard.add(*buttons)
+            keyboard = InlineKeyboardMarkup()
+            for url in base_urls:
+                keyboard.add(InlineKeyboardButton(text="Link", url=url))
             await message.reply("Hoş geldin, geleceğin kripto zengini!", reply_markup=keyboard)
     elif " " not in text and 44 >= len(text) >= 40 and not text.startswith("0x"):
         base_urls = [
@@ -62,9 +61,9 @@ async def handle_message(message: types.Message):
             f"https://dexscreener.com/solana/{text}",
             f"https://rugcheck.xyz/tokens/{text}"
         ]
-        keyboard = types.InlineKeyboardMarkup()
-        buttons = [types.InlineKeyboardButton(text="Link", url=url) for url in base_urls]
-        keyboard.add(*buttons)
+        keyboard = InlineKeyboardMarkup()
+        for url in base_urls:
+            keyboard.add(InlineKeyboardButton(text="Link", url=url))
         await message.reply("Hoş geldin, geleceğin kripto zengini!", reply_markup=keyboard)
 
 if __name__ == "__main__":
