@@ -23,12 +23,34 @@ class SolanaPumpfunBot:
         self.check_interval = 60  # 1 dakika (saniye)
         self.monitor_duration = 2 * 60 * 60  # 2 saat (saniye)
         self.telegram_bot_token = "7956360443:AAFZdJRht7r-g5oqBF4uCb6ssB6__Pjt21w"
-        self.telegram_chat_id = "1324789502"
+        self.chat_id = None  # Dinamik olarak bulunacak
+
+    def get_chat_id(self):
+        """Telegram’dan son güncellemeleri çekip chat_id’yi bulur."""
+        try:
+            url = f"https://api.telegram.org/bot{self.telegram_bot_token}/getUpdates"
+            response = requests.get(url, timeout=10)
+            response.raise_for_status()
+            data = response.json()
+            if data["ok"] and data["result"]:
+                # Son mesajın chat_id’sini al
+                latest_update = data["result"][-1]
+                self.chat_id = latest_update["message"]["chat"]["id"]
+                logging.info(f"Chat ID bulundu: {self.chat_id}")
+            else:
+                logging.warning("Chat ID bulunamadı, botun bir mesaj alması gerekiyor.")
+        except Exception as e:
+            logging.error(f"Chat ID alma hatası: {e}")
 
     def send_telegram_notification(self, message: str):
+        if not self.chat_id:
+            self.get_chat_id()  # Chat ID yoksa bulmaya çalış
+        if not self.chat_id:
+            logging.warning("Chat ID hala bulunamadı, mesaj gönderilemedi.")
+            return
         try:
             url = f"https://api.telegram.org/bot{self.telegram_bot_token}/sendMessage"
-            params = {"chat_id": self.telegram_chat_id, "text": message}
+            params = {"chat_id": self.chat_id, "text": message}
             response = requests.post(url, params=params, timeout=10)
             response.raise_for_status()
             logging.info(f"Telegram bildirimi gönderildi: {message}")
@@ -124,6 +146,8 @@ class SolanaPumpfunBot:
 
 async def main():
     bot = SolanaPumpfunBot()
+    # İlk chat_id’yi bulmak için bir mesaj bekleyebilir veya botu başlatmadan önce bir mesaj gönderin
+    logging.info("Bot başlatılıyor, lütfen botunuza bir mesaj gönderin ki chat_id bulunabilsin...")
     await bot.monitor_raydium_liquidity()
 
 if __name__ == "__main__":
