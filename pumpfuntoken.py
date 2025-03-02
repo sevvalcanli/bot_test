@@ -26,7 +26,7 @@ class SolanaPumpfunBot:
         self.chat_id = None  # Dinamik olarak bulunacak
 
     def get_chat_id(self):
-        """Telegram’dan son güncellemeleri çekip chat_id’yi bulur."""
+        """Telegram’dan son güncellemeleri çekip chat_id’yi bulur, ama mesaj göndermez."""
         try:
             url = f"https://api.telegram.org/bot{self.telegram_bot_token}/getUpdates"
             response = requests.get(url, timeout=10)
@@ -36,10 +36,6 @@ class SolanaPumpfunBot:
                 latest_update = data["result"][-1]
                 self.chat_id = latest_update["message"]["chat"]["id"]
                 logging.info(f"Chat ID bulundu: {self.chat_id}")
-                # Chat ID bulunduğunda hoş geldiniz mesajı gönder
-                self.send_telegram_notification(
-                    "CryptoGemTR topluluğuna hoş geldiniz! Pump.fun’dan Raydium’a geçen 1M+ market cap’li tokenları sizin için buluyorum. Dakikada bir kontrol edip, 2 saat boyunca peşlerinden koşuyorum. Botunuz hizmetinizde!"
-                )
             else:
                 logging.warning("Chat ID bulunamadı, botun bir mesaj alması gerekiyor.")
         except Exception as e:
@@ -77,10 +73,10 @@ class SolanaPumpfunBot:
                         if "message" in update and "text" in update["message"]:
                             chat_id = update["message"]["chat"]["id"]
                             text = update["message"]["text"]
-                            if text == "/start" and self.chat_id != chat_id:
+                            if text == "/start":
                                 self.chat_id = chat_id
                                 self.send_telegram_notification(
-                                    "CryptoGemTR topluluğuna hoş geldiniz! Solana ağındaki tokenleri izleyip analiz eden botu başlattınız. Keyifli kazançlar!"
+                                    "CryptoGemTR topluluğuna hoş geldiniz! Solana ağındaki potansiyelli tokenleri sizin için keşfetmeye başladım. Keyifli kazançlar!"
                                 )
             except Exception as e:
                 logging.error(f"Telegram güncelleme hatası: {e}")
@@ -174,8 +170,7 @@ class SolanaPumpfunBot:
                 await asyncio.sleep(1)  # CPU’yu yormamak için
 
     async def run(self):
-        # Bot başlatıldığında bir mesaj gönder
-        logging.info("Bot başlatılıyor...")
+        logging.info("Bot başlatılıyor, /start komutunu bekliyor...")
         await asyncio.gather(
             self.monitor_raydium_liquidity(),
             self.listen_telegram_updates()
