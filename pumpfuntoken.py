@@ -33,10 +33,13 @@ class SolanaPumpfunBot:
             response.raise_for_status()
             data = response.json()
             if data["ok"] and data["result"]:
-                # Son mesajın chat_id’sini al
                 latest_update = data["result"][-1]
                 self.chat_id = latest_update["message"]["chat"]["id"]
                 logging.info(f"Chat ID bulundu: {self.chat_id}")
+                # Chat ID bulunduğunda hoş geldiniz mesajı gönder
+                self.send_telegram_notification(
+                    "CryptoGemTR topluluğuna hoş geldiniz! Pump.fun’dan Raydium’a geçen 1M+ market cap’li tokenları sizin için buluyorum. Dakikada bir kontrol edip, 2 saat boyunca peşlerinden koşuyorum. Botunuz hizmetinizde!"
+                )
             else:
                 logging.warning("Chat ID bulunamadı, botun bir mesaj alması gerekiyor.")
         except Exception as e:
@@ -56,6 +59,32 @@ class SolanaPumpfunBot:
             logging.info(f"Telegram bildirimi gönderildi: {message}")
         except requests.RequestException as e:
             logging.error(f"Telegram bildirimi gönderilemedi: {e}")
+
+    async def listen_telegram_updates(self):
+        """Telegram’dan gelen mesajları dinleyip /start komutuna yanıt verir."""
+        offset = None
+        while True:
+            try:
+                url = f"https://api.telegram.org/bot{self.telegram_bot_token}/getUpdates?timeout=10"
+                if offset:
+                    url += f"&offset={offset}"
+                response = requests.get(url, timeout=15)
+                response.raise_for_status()
+                data = response.json()
+                if data["ok"] and data["result"]:
+                    for update in data["result"]:
+                        offset = update["update_id"] + 1
+                        if "message" in update and "text" in update["message"]:
+                            chat_id = update["message"]["chat"]["id"]
+                            text = update["message"]["text"]
+                            if text == "/start" and self.chat_id != chat_id:
+                                self.chat_id = chat_id
+                                self.send_telegram_notification(
+                                    "CryptoGemTR topluluğuna hoş geldiniz! Solana ağındaki tokenleri izleyip analiz eden botu başlattınız. Keyifli kazançlar!"
+                                )
+            except Exception as e:
+                logging.error(f"Telegram güncelleme hatası: {e}")
+            await asyncio.sleep(1)
 
     def check_token(self, token_address: str, detect_time: float):
         url = self.pair_url.format(tokenAddress=token_address)
@@ -144,11 +173,17 @@ class SolanaPumpfunBot:
 
                 await asyncio.sleep(1)  # CPU’yu yormamak için
 
+    async def run(self):
+        # Bot başlatıldığında bir mesaj gönder
+        logging.info("Bot başlatılıyor...")
+        await asyncio.gather(
+            self.monitor_raydium_liquidity(),
+            self.listen_telegram_updates()
+        )
+
 async def main():
     bot = SolanaPumpfunBot()
-    # İlk chat_id’yi bulmak için bir mesaj bekleyebilir veya botu başlatmadan önce bir mesaj gönderin
-    logging.info("Bot başlatılıyor, lütfen botunuza bir mesaj gönderin ki chat_id bulunabilsin...")
-    await bot.monitor_raydium_liquidity()
+    await bot.run()
 
 if __name__ == "__main__":
     try:
