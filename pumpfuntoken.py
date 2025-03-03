@@ -125,7 +125,7 @@ class SolanaPumpfunBot:
         uri = "wss://pumpportal.fun/api/data"
         while True:
             try:
-                async with websockets.connect(uri) as websocket:
+                async with websockets.connect(uri, open_timeout=60) as websocket:
                     await websocket.send(json.dumps({"method": "subscribeRaydiumLiquidity"}))
                     logging.info("PumpPortal’a abone olundu, Raydium likidite eklenmeleri dinleniyor...")
                     
