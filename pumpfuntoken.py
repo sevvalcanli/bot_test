@@ -5,11 +5,9 @@ import asyncio
 import requests
 import os
 import logging
-import threading
 from datetime import datetime
 from collections import deque
-from telegram import Update
-from telegram.ext import Application, CommandHandler, ContextTypes
+from telegram.ext import Application
 
 # Log ayarları
 logging.basicConfig(
@@ -28,7 +26,7 @@ class SolanaPumpfunBot:
         self.check_interval = 60
         self.monitor_duration = 2 * 60 * 60
         self.telegram_bot_token = "7586619568:AAE2Au8AhKVDldZuSHbG43ggS3i6lzTVkdA"
-        self.chat_id = None  # /start ile güncellenecek
+        self.chat_id = "-1002309534365"  # Sabit chat ID, gruba göre güncelle
         self.reconnect_delay = 5
         self.running = False
         self.application = Application.builder().token(self.telegram_bot_token).build()
@@ -102,7 +100,7 @@ class SolanaPumpfunBot:
                     message += f"💬 [Telegram]({telegram}) \n"
 
                 logging.info(message)
-                asyncio.run(self.send_telegram_notification(message))  # Asenkron çağrı için run
+                asyncio.run(self.send_telegram_notification(message))  # Asenkron mesaj gönderimi
                 self.pairs_data[pair_address] = {'notified': True}
                 return True
             else:
@@ -151,32 +149,20 @@ class SolanaPumpfunBot:
                 await asyncio.sleep(self.reconnect_delay)
                 self.reconnect_delay = min(self.reconnect_delay * 2, 60)
 
-    def start_monitoring_thread(self):
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        loop.run_until_complete(self.monitor_raydium_liquidity())
-
-    async def start(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        logging.info(f"/start komutu alındı, Chat ID: {update.message.chat_id}")
-        self.chat_id = update.message.chat_id
-        if not self.running:
-            self.running = True
-            logging.info("Bot çalışmaya başladı, hoş geldiniz mesajı gönderiliyor.")
-            await self.send_telegram_notification(
-                "🚀 *CryptoGemTR topluluğuna hoş geldiniz!* \n"
-                "Pump.fun’dan Raydium’a geçen 1M+ market cap’li tokenları sizin için buluyorum. "
-                "Dakikada bir kontrol edip, 2 saat boyunca peşlerinden koşuyorum. "
-                "*Botunuz hizmetinizde!*"
-            )
-            threading.Thread(target=self.start_monitoring_thread, daemon=True).start()
-            logging.info("Monitoring görevi başlatıldı.")
-        else:
-            logging.info("Bot zaten çalışıyor, tekrar başlatılmadı.")
-            await context.bot.send_message(chat_id=update.message.chat_id, text="Bot zaten çalışıyor!")
+    async def start_monitoring(self):
+        logging.info("Bot çalışmaya başladı, hoş geldiniz mesajı gönderiliyor.")
+        self.running = True
+        await self.send_telegram_notification(
+            "🚀 *CryptoGemTR topluluğuna hoş geldiniz!* \n"
+            "Pump.fun’dan Raydium’a geçen 1M+ market cap’li tokenları sizin için buluyorum. "
+            "Dakikada bir kontrol edip, 2 saat boyunca peşlerinden koşuyorum. "
+            "*Botunuz hizmetinizde!*"
+        )
+        await self.monitor_raydium_liquidity()  # Direkt asenkron çalıştır
 
     def run_bot(self):
-        start_handler = CommandHandler('start', self.start)
-        self.application.add_handler(start_handler)
+        # Botu başlat ve start_monitoring’i çalıştır
+        asyncio.run(self.start_monitoring())
         self.application.run_polling()
 
 if __name__ == "__main__":
