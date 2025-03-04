@@ -4,11 +4,12 @@ import websockets
 import asyncio
 import requests
 import os
-from datetime import datetime
 import logging
+import threading
+from datetime import datetime
 from collections import deque
-from aiogram import Bot, Dispatcher, types
-from aiogram.utils import executor
+from telegram import Update
+from telegram.ext import Updater, CommandHandler, CallbackContext
 
 # Log ayarları
 logging.basicConfig(
@@ -27,26 +28,21 @@ class SolanaPumpfunBot:
         self.check_interval = 60
         self.monitor_duration = 2 * 60 * 60
         self.telegram_bot_token = "7586619568:AAE2Au8AhKVDldZuSHbG43ggS3i6lzTVkdA"
-        self.chat_id = "-1002309534365"  # Varsayılan Chat ID, /start ile güncellenecek
+        self.chat_id = None  # /start ile güncellenecek
         self.reconnect_delay = 5
         self.running = False
-        self.monitor_task = None
-        self.bot = Bot(token=self.telegram_bot_token)
-        self.dp = Dispatcher(self.bot)
-        
+        self.bot = None  # Updater tarafından atanacak
+        self.updater = Updater(self.telegram_bot_token, use_context=True)
+
     def send_telegram_notification(self, message: str):
         logging.info("send_telegram_notification fonksiyonu çağrıldı.")
         if not self.telegram_bot_token or not self.chat_id:
             logging.error("Telegram bot token veya chat_id eksik!")
             return
         try:
-            url = f"https://api.telegram.org/bot{self.telegram_bot_token}/sendMessage"
-            params = {"chat_id": self.chat_id, "text": message, "parse_mode": "Markdown"}
-            logging.info(f"Telegram API isteği yapılıyor: {url} - Params: {params}")
-            response = requests.post(url, params=params, timeout=10)
-            response.raise_for_status()
+            self.bot.send_message(chat_id=self.chat_id, text=message, parse_mode="Markdown")
             logging.info(f"Telegram bildirimi gönderildi: {message}")
-        except requests.RequestException as e:
+        except Exception as e:
             logging.error(f"Telegram bildirimi gönderilemedi: {e}")
 
     def check_token(self, token_address: str, detect_time: float):
@@ -156,8 +152,16 @@ class SolanaPumpfunBot:
                 await asyncio.sleep(self.reconnect_delay)
                 self.reconnect_delay = min(self.reconnect_delay * 2, 60)
 
-    async def start_monitoring(self):
-        logging.info("start_monitoring fonksiyonu çağrıldı.")
+    def start_monitoring_thread(self):
+        # WebSocket döngüsünü ayrı bir iş parçacığında çalıştır
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        loop.run_until_complete(self.monitor_raydium_liquidity())
+
+    def start(self, update: Update, context: CallbackContext):
+        logging.info(f"/start komutu alındı, Chat ID: {update.message.chat_id}")
+        self.chat_id = update.message.chat_id  # Chat ID’yi güncelle
+        self.bot = context.bot  # Bot nesnesini al
         if not self.running:
             self.running = True
             logging.info("Bot çalışmaya başladı, hoş geldiniz mesajı gönderiliyor.")
@@ -167,20 +171,18 @@ class SolanaPumpfunBot:
                 "Dakikada bir kontrol edip, 2 saat boyunca peşlerinden koşuyorum. "
                 "*Botunuz hizmetinizde!*"
             )
-            if self.monitor_task is None or self.monitor_task.done():
-                self.monitor_task = asyncio.create_task(self.monitor_raydium_liquidity())
-                logging.info("Monitoring görevi başlatıldı.")
+            # WebSocket’u ayrı bir iş parçacığında başlat
+            threading.Thread(target=self.start_monitoring_thread, daemon=True).start()
+            logging.info("Monitoring görevi başlatıldı.")
         else:
             logging.info("Bot zaten çalışıyor, tekrar başlatılmadı.")
 
-    async def on_start(self, message: types.Message):
-        logging.info(f"/start komutu alındı, Chat ID: {message.chat.id}")
-        self.chat_id = str(message.chat.id)  # Chat ID’yi dinamik olarak güncelle
-        await self.start_monitoring()
-
     def run_bot(self):
-        self.dp.register_message_handler(self.on_start, commands=['start'])
-        executor.start_polling(self.dp, skip_updates=True)
+        dispatcher = self.updater.dispatcher
+        start_handler = CommandHandler('start', self.start)
+        dispatcher.add_handler(start_handler)
+        self.updater.start_polling()
+        self.updater.idle()
 
 if __name__ == "__main__":
     bot = SolanaPumpfunBot()
