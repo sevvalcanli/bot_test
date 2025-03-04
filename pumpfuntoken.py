@@ -25,8 +25,8 @@ class SolanaPumpfunBot:
         self.marketcap_threshold = 1_000_000
         self.check_interval = 60
         self.monitor_duration = 2 * 60 * 60
-        self.telegram_bot_token = "7586619568:AAE2Au8AhKVDldZuSHbG43ggS3i6lzTVkdA"
-        self.chat_id = "-1002309534365"  # Sabit chat ID, gruba göre güncelle
+        self.telegram_bot_token = "7586619568:AAE2Au8AhKVDldZuSHbG43ggS3i6lzTVkdA" 
+        self.chat_id = "-1002309534365"
         self.reconnect_delay = 5
         self.running = False
         self.application = Application.builder().token(self.telegram_bot_token).build()
@@ -100,7 +100,7 @@ class SolanaPumpfunBot:
                     message += f"💬 [Telegram]({telegram}) \n"
 
                 logging.info(message)
-                asyncio.run(self.send_telegram_notification(message))  # Asenkron mesaj gönderimi
+                asyncio.run(self.send_telegram_notification(message))
                 self.pairs_data[pair_address] = {'notified': True}
                 return True
             else:
@@ -121,6 +121,7 @@ class SolanaPumpfunBot:
                     while self.running:
                         message = await websocket.recv()
                         data = json.loads(message)
+                        logging.info(f"PumpPortal’dan ham veri alındı: {data}")  # Ham veriyi logla
                         token_address = data.get("mint")
                         if token_address:
                             detect_time = time.time()
@@ -128,6 +129,8 @@ class SolanaPumpfunBot:
                             if self.check_token(token_address, detect_time):
                                 continue
                             self.new_tokens.append((token_address, detect_time))
+                        else:
+                            logging.info("Alınan veride 'mint' anahtarı yok.")
 
                         current_time = time.time()
                         tokens_to_remove = []
@@ -158,10 +161,9 @@ class SolanaPumpfunBot:
             "Dakikada bir kontrol edip, 2 saat boyunca peşlerinden koşuyorum. "
             "*Botunuz hizmetinizde!*"
         )
-        await self.monitor_raydium_liquidity()  # Direkt asenkron çalıştır
+        await self.monitor_raydium_liquidity()
 
     def run_bot(self):
-        # Botu başlat ve start_monitoring’i çalıştır
         asyncio.run(self.start_monitoring())
         self.application.run_polling()
 
