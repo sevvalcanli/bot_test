@@ -26,7 +26,7 @@ class SolanaPumpfunBot:
         self.marketcap_threshold = 1_000_000  # 1M USD
         self.check_interval = 60  # 1 dakika
         self.monitor_duration = 2 * 60 * 60  # 2 saat
-        self.telegram_bot_token = os.getenv("TELEGRAM_BOT_TOKEN", "7956360443:AAFZdJRht7r-g5oqBF4uCb6ssB6__Pjt21w")
+        self.telegram_bot_token = os.getenv("TELEGRAM_BOT_TOKEN", "7586619568:AAE2Au8AhKVDldZuSHbG43ggS3i6lzTVkdA")
         self.chat_id = "-4673727838"  # Sabit chat_id
         self.reconnect_delay = 5  # Başlangıçta 5 saniye
         self.running = False  # Botun çalışma durumu
