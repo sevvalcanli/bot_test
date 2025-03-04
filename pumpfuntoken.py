@@ -27,7 +27,7 @@ class SolanaPumpfunBot:
         self.check_interval = 60
         self.monitor_duration = 2 * 60 * 60
         self.telegram_bot_token = "7586619568:AAE2Au8AhKVDldZuSHbG43ggS3i6lzTVkdA"  # Yeni token
-        self.chat_id = "-4673727838"
+        self.chat_id = "-1002309534365"
         self.reconnect_delay = 5
         self.running = False
         self.monitor_task = None
