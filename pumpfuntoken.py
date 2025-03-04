@@ -22,15 +22,15 @@ class SolanaPumpfunBot:
     def __init__(self):
         self.pair_url = "https://api.dexscreener.com/token-pairs/v1/solana/{tokenAddress}"
         self.pairs_data = {}
-        self.new_tokens = deque(maxlen=100)  # Maksimum 100 token izleme
-        self.marketcap_threshold = 1_000_000  # 1M USD
-        self.check_interval = 60  # 1 dakika
-        self.monitor_duration = 2 * 60 * 60  # 2 saat
-        self.telegram_bot_token = os.getenv("TELEGRAM_BOT_TOKEN", "7586619568:AAE2Au8AhKVDldZuSHbG43ggS3i6lzTVkdA")
-        self.chat_id = "-4673727838"  # Sabit chat_id
-        self.reconnect_delay = 5  # Başlangıçta 5 saniye
-        self.running = False  # Botun çalışma durumu
-        self.loop = asyncio.get_event_loop()
+        self.new_tokens = deque(maxlen=100)
+        self.marketcap_threshold = 1_000_000
+        self.check_interval = 60
+        self.monitor_duration = 2 * 60 * 60
+        self.telegram_bot_token = "7586619568:AAE2Au8AhKVDldZuSHbG43ggS3i6lzTVkdA"  # Yeni token
+        self.chat_id = "-4673727838"
+        self.reconnect_delay = 5
+        self.running = False
+        self.monitor_task = None
         self.bot = Bot(token=self.telegram_bot_token)
         self.dp = Dispatcher(self.bot)
         
@@ -40,7 +40,7 @@ class SolanaPumpfunBot:
             return
         try:
             url = f"https://api.telegram.org/bot{self.telegram_bot_token}/sendMessage"
-            params = {"chat_id": self.chat_id, "text": message, "parse_mode": "Markdown"}
+            params = {"chat_id": self.chat_id, "text": message}  # Markdown olmadan
             response = requests.post(url, params=params, timeout=10)
             response.raise_for_status()
             logging.info(f"Telegram bildirimi gönderildi: {message}")
@@ -66,7 +66,7 @@ class SolanaPumpfunBot:
             if fdv >= self.marketcap_threshold:
                 token_name = pair.get('baseToken', {}).get('symbol', 'Unknown')
                 price_usd = float(pair.get('priceUsd', 0) or 0)
-                created_at = pair.get('pairCreatedAt', 0) / 1000  # Milisaniyeden saniyeye çevir
+                created_at = pair.get('pairCreatedAt', 0) / 1000
                 info = pair.get('info', {})
                 websites = info.get('websites', [])
                 socials = info.get('socials', [])
@@ -75,39 +75,34 @@ class SolanaPumpfunBot:
                 telegram = next((s['url'] for s in socials if s.get('type') == 'telegram'), '')
                 liquidity = float(pair.get('liquidity', {}).get('usd', 0) or 0)
                 volume_24h = float(pair.get('volume', {}).get('h24', 0) or 0)
-                age_minutes = (time.time() - created_at) / 60  # Token yaşı (dakika)
+                age_minutes = (time.time() - created_at) / 60
                 price_change_h1 = pair.get("priceChange", {}).get("h1", 0)
                 price_change_h24 = pair.get("priceChange", {}).get("h24", 0)
 
-                if not website and not twitter and not telegram:
-                    logging.info(f"{token_address} için sosyal medya bilgisi bulunamadı.")
-                else:
-                    logging.info(f"{token_address} için sosyal medya: Website: {website}, Twitter: {twitter}, Telegram: {telegram}")
-
                 message = (
-                    f"🚀  **Yeni Pump.fun Mezunu Solana Token!**\n"
-                    f"🌐  Solana @ Raydium\n"
-                    f"🔹  **Token Adı:** {token_name}\n"
-                    f"📍  **Token Adresi:** `{token_address}`\n"
-                    f"🕰️  **Yaş:** {int(age_minutes)}m\n\n"
-                    f"📊  **Token Stats**\n"
-                    f" ├ USD:  ${price_usd:.4f} {price_change_h24}%\n"
-                    f" ├ MC:   ${fdv:,.2f}\n"
-                    f" ├ Vol:  ${volume_24h/1000:.1f}K\n"
-                    f" ├ LP:   ${liquidity/1000:.1f}K\n"
-                    f" ├ 1H:   {price_change_h1}% 🅑 {pair.get('txns', {}).get('h1', {}).get('buys', 0)} Ⓢ {pair.get('txns', {}).get('h1', {}).get('sells', 0)}\n\n"
-                    f"🔗  **Linkler:**\n"
-                    f" - [DEX](https://dexscreener.com/solana/{pair_address})\n"
-                    f" - [PumpFun](https://pump.fun/{token_address})\n"
-                    f" - [Bullx](https://bullx.io/terminal?chainId=1399811149&address={token_address})\n"
+                    f"Yeni Pump.fun Mezunu Solana Token!\n"
+                    f"Solana @ Raydium\n"
+                    f"Token Adı: {token_name}\n"
+                    f"Token Adresi: {token_address}\n"
+                    f"Yaş: {int(age_minutes)}m\n\n"
+                    f"Token Stats\n"
+                    f"USD: ${price_usd:.4f} {price_change_h24}%\n"
+                    f"MC: ${fdv:,.2f}\n"
+                    f"Vol: ${volume_24h/1000:.1f}K\n"
+                    f"LP: ${liquidity/1000:.1f}K\n"
+                    f"1H: {price_change_h1}% B {pair.get('txns', {}).get('h1', {}).get('buys', 0)} S {pair.get('txns', {}).get('h1', {}).get('sells', 0)}\n\n"
+                    f"Linkler:\n"
+                    f"- DEX: https://dexscreener.com/solana/{pair_address}\n"
+                    f"- PumpFun: https://pump.fun/{token_address}\n"
+                    f"- Bullx: https://bullx.io/terminal?chainId=1399811149&address={token_address}\n"
                 )
 
                 if website:
-                    message += f"🌍  [Website]({website})\n"
+                    message += f"Website: {website}\n"
                 if twitter:
-                    message += f"🐦  [Twitter]({twitter})\n"
+                    message += f"Twitter: {twitter}\n"
                 if telegram:
-                    message += f"💬  [Telegram]({telegram})\n"
+                    message += f"Telegram: {telegram}\n"
 
                 logging.info(message)
                 self.send_telegram_notification(message)
@@ -153,7 +148,7 @@ class SolanaPumpfunBot:
                             if token in self.new_tokens:
                                 self.new_tokens.remove(token)
 
-                        await asyncio.sleep(1)  # CPU’yu yormamak için
+                        await asyncio.sleep(1)
             except (websockets.ConnectionClosed, Exception) as e:
                 logging.error(f"WebSocket bağlantısı kesildi: {e}. {self.reconnect_delay} saniye sonra yeniden bağlanılıyor...")
                 await asyncio.sleep(self.reconnect_delay)
@@ -163,16 +158,20 @@ class SolanaPumpfunBot:
         if not self.running:
             self.running = True
             self.send_telegram_notification("CryptoGemTR topluluğuna hoş geldiniz! Pump.fun’dan Raydium’a geçen 1M+ market cap’li tokenları sizin için buluyorum. Dakikada bir kontrol edip, 2 saat boyunca peşlerinden koşuyorum. Botunuz hizmetinizde!")
-            asyncio.create_task(self.monitor_raydium_liquidity())
+            if self.monitor_task is None or self.monitor_task.done():
+                self.monitor_task = asyncio.create_task(self.monitor_raydium_liquidity())
+                logging.info("Monitoring görevi başlatıldı.")
+        else:
+            logging.info("Bot zaten çalışıyor, tekrar başlatılmadı.")
 
-    # Aiogram ile /start komutu
     async def on_start(self, message: types.Message):
-        logging.info(f"/start komutu alındı, Chat ID: {self.chat_id}")  # Log ekle
-        await message.reply("Bot çalışıyor!")  # Test mesajı
+        logging.info(f"/start komutu alındı, Chat ID: {self.chat_id}")
+        await message.reply("Bot çalışıyor!")
         await self.start_monitoring()
 
     def run_bot(self):
         self.dp.register_message_handler(self.on_start, commands=['start'])
+        asyncio.ensure_future(self.start_monitoring())
         executor.start_polling(self.dp, skip_updates=True)
 
 if __name__ == "__main__":
