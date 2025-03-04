@@ -25,7 +25,7 @@ class SolanaPumpfunBot:
         self.marketcap_threshold = 1_000_000
         self.check_interval = 60
         self.monitor_duration = 2 * 60 * 60
-        self.telegram_bot_token = "7586619568:AAE2Au8AhKVDldZuSHbG43ggS3i6lzTVkdA" 
+        self.telegram_bot_token = "7586619568:AAE2Au8AhKVDldZuSHbG43ggS3i6lzTVkdA"
         self.chat_id = "-1002309534365"
         self.reconnect_delay = 5
         self.running = False
@@ -42,7 +42,7 @@ class SolanaPumpfunBot:
         except Exception as e:
             logging.error(f"Telegram bildirimi gönderilemedi: {e}")
 
-    def check_token(self, token_address: str, detect_time: float):
+    async def check_token(self, token_address: str, detect_time: float):
         url = self.pair_url.format(tokenAddress=token_address)
         try:
             response = requests.get(url, timeout=10)
@@ -100,7 +100,7 @@ class SolanaPumpfunBot:
                     message += f"💬 [Telegram]({telegram}) \n"
 
                 logging.info(message)
-                asyncio.run(self.send_telegram_notification(message))
+                await self.send_telegram_notification(message)  # Asenkron çağrı
                 self.pairs_data[pair_address] = {'notified': True}
                 return True
             else:
@@ -121,16 +121,15 @@ class SolanaPumpfunBot:
                     while self.running:
                         message = await websocket.recv()
                         data = json.loads(message)
-                        logging.info(f"PumpPortal’dan ham veri alındı: {data}")  # Ham veriyi logla
                         token_address = data.get("mint")
-                        if token_address:
+                        if token_address:  # Sadece mint varsa işlem yap
                             detect_time = time.time()
                             logging.info(f"Raydium’a likidite eklendi: {token_address} - Tespit zamanı: {datetime.fromtimestamp(detect_time)}")
-                            if self.check_token(token_address, detect_time):
-                                continue
-                            self.new_tokens.append((token_address, detect_time))
-                        else:
-                            logging.info("Alınan veride 'mint' anahtarı yok.")
+                            # Token zaten listede mi diye kontrol et
+                            if not any(t[0] == token_address for t in self.new_tokens):
+                                if await self.check_token(token_address, detect_time):
+                                    continue
+                                self.new_tokens.append((token_address, detect_time))
 
                         current_time = time.time()
                         tokens_to_remove = []
@@ -139,7 +138,7 @@ class SolanaPumpfunBot:
                                 tokens_to_remove.append((token_address, detect_time))
                                 logging.info(f"Token izleme süresi doldu: {token_address}")
                             elif current_time - detect_time >= self.check_interval:
-                                if self.check_token(token_address, detect_time):
+                                if await self.check_token(token_address, detect_time):
                                     tokens_to_remove.append((token_address, detect_time))
 
                         for token in tokens_to_remove:
@@ -147,8 +146,12 @@ class SolanaPumpfunBot:
                                 self.new_tokens.remove(token)
 
                         await asyncio.sleep(1)
-            except (websockets.ConnectionClosed, Exception) as e:
-                logging.error(f"WebSocket bağlantısı kesildi: {e}. {self.reconnect_delay} saniye sonra yeniden bağlanılıyor...")
+            except websockets.ConnectionClosed as e:
+                logging.error(f"WebSocket bağlantısı kesildi (ConnectionClosed): {e}. {self.reconnect_delay} saniye sonra yeniden bağlanılıyor...")
+                await asyncio.sleep(self.reconnect_delay)
+                self.reconnect_delay = min(self.reconnect_delay * 2, 60)
+            except Exception as e:
+                logging.error(f"WebSocket bağlantısı kesildi (Genel Hata): {e}. {self.reconnect_delay} saniye sonra yeniden bağlanılıyor...")
                 await asyncio.sleep(self.reconnect_delay)
                 self.reconnect_delay = min(self.reconnect_delay * 2, 60)
 
