@@ -31,8 +31,9 @@ class SolanaPumpfunBot:
         self.chat_id = None  # /start ile güncellenecek
         self.reconnect_delay = 5
         self.running = False
-        self.bot = None  # Updater tarafından atanacak
-        self.updater = Updater(self.telegram_bot_token, use_context=True)
+        self.bot = None
+        # use_context=True kaldırıldı, çünkü 21.x sürümlerinde varsayılan olarak açık
+        self.updater = Updater(self.telegram_bot_token)
 
     def send_telegram_notification(self, message: str):
         logging.info("send_telegram_notification fonksiyonu çağrıldı.")
@@ -153,15 +154,14 @@ class SolanaPumpfunBot:
                 self.reconnect_delay = min(self.reconnect_delay * 2, 60)
 
     def start_monitoring_thread(self):
-        # WebSocket döngüsünü ayrı bir iş parçacığında çalıştır
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         loop.run_until_complete(self.monitor_raydium_liquidity())
 
     def start(self, update: Update, context: CallbackContext):
         logging.info(f"/start komutu alındı, Chat ID: {update.message.chat_id}")
-        self.chat_id = update.message.chat_id  # Chat ID’yi güncelle
-        self.bot = context.bot  # Bot nesnesini al
+        self.chat_id = update.message.chat_id
+        self.bot = context.bot
         if not self.running:
             self.running = True
             logging.info("Bot çalışmaya başladı, hoş geldiniz mesajı gönderiliyor.")
@@ -171,11 +171,11 @@ class SolanaPumpfunBot:
                 "Dakikada bir kontrol edip, 2 saat boyunca peşlerinden koşuyorum. "
                 "*Botunuz hizmetinizde!*"
             )
-            # WebSocket’u ayrı bir iş parçacığında başlat
             threading.Thread(target=self.start_monitoring_thread, daemon=True).start()
             logging.info("Monitoring görevi başlatıldı.")
         else:
             logging.info("Bot zaten çalışıyor, tekrar başlatılmadı.")
+            context.bot.send_message(chat_id=update.message.chat_id, text="Bot zaten çalışıyor!")
 
     def run_bot(self):
         dispatcher = self.updater.dispatcher
