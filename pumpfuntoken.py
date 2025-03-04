@@ -41,7 +41,7 @@ class SolanaPumpfunBot:
             return
         try:
             url = f"https://api.telegram.org/bot{self.telegram_bot_token}/sendMessage"
-            params = {"chat_id": self.chat_id, "text": message, "parse_mode": "MarkdownV2"}
+            params = {"chat_id": self.chat_id, "text": message, "parse_mode": "Markdown"}
             logging.info(f"Telegram API isteği yapılıyor: {url} - Params: {params}")
             response = requests.post(url, params=params, timeout=10)
             response.raise_for_status()
@@ -82,17 +82,17 @@ class SolanaPumpfunBot:
                 price_change_h24 = pair.get("priceChange", {}).get("h24", 0)
 
                 message = (
-                    f"🚀 *Yeni Pump\\.fun Mezunu Solana Token\\!* \n"
+                    f"🚀 *Yeni Pump.fun Mezunu Solana Token!* \n"
                     f"🌐 *Solana @ Raydium* \n"
                     f"🔹 *Token Adı:* {token_name} \n"
                     f"📍 *Token Adresi:* `{token_address}` \n"
                     f"🕰️ *Yaş:* {int(age_minutes)}m \n\n"
                     f"📊 *Token Stats* \n"
-                    f" ├ USD: ${price_usd:.4f} {price_change_h24}\\% \n"
+                    f" ├ USD: ${price_usd:.4f} {price_change_h24}% \n"
                     f" ├ MC: ${fdv:,.2f} \n"
                     f" ├ Vol: ${volume_24h/1000:.1f}K \n"
                     f" ├ LP: ${liquidity/1000:.1f}K \n"
-                    f" ├ 1H: {price_change_h1}\\% 🅑 {pair.get('txns', {}).get('h1', {}).get('buys', 0)} Ⓢ {pair.get('txns', {}).get('h1', {}).get('sells', 0)} \n\n"
+                    f" ├ 1H: {price_change_h1}% 🅑 {pair.get('txns', {}).get('h1', {}).get('buys', 0)} Ⓢ {pair.get('txns', {}).get('h1', {}).get('sells', 0)} \n\n"
                     f"🔗 *Linkler:* \n"
                     f" - [DEX](https://dexscreener.com/solana/{pair_address}) \n"
                     f" - [PumpFun](https://pump.fun/{token_address}) \n"
@@ -162,10 +162,10 @@ class SolanaPumpfunBot:
             self.running = True
             logging.info("Bot çalışmaya başladı, hoş geldiniz mesajı gönderiliyor.")
             self.send_telegram_notification(
-                "🚀 *CryptoGemTR topluluğuna hoş geldiniz\\!* \n"
-                "Pump\\.fun’dan Raydium’a geçen 1M+ market cap’li tokenları sizin için buluyorum\\. "
-                "Dakikada bir kontrol edip, 2 saat boyunca peşlerinden koşuyorum\\. "
-                "*Botunuz hizmetinizde\\!*"
+                "🚀 *CryptoGemTR topluluğuna hoş geldiniz!* \n"
+                "Pump.fun’dan Raydium’a geçen 1M+ market cap’li tokenları sizin için buluyorum. "
+                "Dakikada bir kontrol edip, 2 saat boyunca peşlerinden koşuyorum. "
+                "*Botunuz hizmetinizde!*"
             )
             if self.monitor_task is None or self.monitor_task.done():
                 self.monitor_task = asyncio.create_task(self.monitor_raydium_liquidity())
