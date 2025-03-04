@@ -9,7 +9,7 @@ import threading
 from datetime import datetime
 from collections import deque
 from telegram import Update
-from telegram.ext import Updater, CommandHandler, CallbackContext
+from telegram.ext import Application, CommandHandler, ContextTypes
 
 # Log ayarları
 logging.basicConfig(
@@ -31,9 +31,8 @@ class SolanaPumpfunBot:
         self.chat_id = None  # /start ile güncellenecek
         self.reconnect_delay = 5
         self.running = False
-        self.bot = None
-        # use_context=True kaldırıldı, çünkü 21.x sürümlerinde varsayılan olarak açık
-        self.updater = Updater(self.telegram_bot_token)
+        # Application ile botu başlat
+        self.application = Application.builder().token(self.telegram_bot_token).build()
 
     def send_telegram_notification(self, message: str):
         logging.info("send_telegram_notification fonksiyonu çağrıldı.")
@@ -41,7 +40,8 @@ class SolanaPumpfunBot:
             logging.error("Telegram bot token veya chat_id eksik!")
             return
         try:
-            self.bot.send_message(chat_id=self.chat_id, text=message, parse_mode="Markdown")
+            # Application üzerinden mesaj gönder
+            asyncio.run(self.application.bot.send_message(chat_id=self.chat_id, text=message, parse_mode="Markdown"))
             logging.info(f"Telegram bildirimi gönderildi: {message}")
         except Exception as e:
             logging.error(f"Telegram bildirimi gönderilemedi: {e}")
@@ -158,10 +158,9 @@ class SolanaPumpfunBot:
         asyncio.set_event_loop(loop)
         loop.run_until_complete(self.monitor_raydium_liquidity())
 
-    def start(self, update: Update, context: CallbackContext):
+    async def start(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         logging.info(f"/start komutu alındı, Chat ID: {update.message.chat_id}")
         self.chat_id = update.message.chat_id
-        self.bot = context.bot
         if not self.running:
             self.running = True
             logging.info("Bot çalışmaya başladı, hoş geldiniz mesajı gönderiliyor.")
@@ -175,14 +174,14 @@ class SolanaPumpfunBot:
             logging.info("Monitoring görevi başlatıldı.")
         else:
             logging.info("Bot zaten çalışıyor, tekrar başlatılmadı.")
-            context.bot.send_message(chat_id=update.message.chat_id, text="Bot zaten çalışıyor!")
+            await context.bot.send_message(chat_id=update.message.chat_id, text="Bot zaten çalışıyor!")
 
     def run_bot(self):
-        dispatcher = self.updater.dispatcher
+        # CommandHandler ile /start komutunu ekle
         start_handler = CommandHandler('start', self.start)
-        dispatcher.add_handler(start_handler)
-        self.updater.start_polling()
-        self.updater.idle()
+        self.application.add_handler(start_handler)
+        # Botu başlat
+        self.application.run_polling()
 
 if __name__ == "__main__":
     bot = SolanaPumpfunBot()
