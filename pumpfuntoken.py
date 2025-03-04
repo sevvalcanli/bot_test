@@ -160,8 +160,7 @@ class SolanaPumpfunBot:
         self.running = True
         await self.send_telegram_notification(
             "🚀 *CryptoGemTR topluluğuna hoş geldiniz!* \n"
-            "Pump.fun’dan Raydium’a geçen 1M+ market cap’li tokenları sizin için buluyorum. "
-            "Dakikada bir kontrol edip, 2 saat boyunca peşlerinden koşuyorum. "
+            "Pump.fun’dan Raydium’a geçen potansiyelli tokenları sizin için buluyorum. "
             "*Botunuz hizmetinizde!*"
         )
         await self.monitor_raydium_liquidity()
