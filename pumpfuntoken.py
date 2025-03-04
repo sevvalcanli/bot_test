@@ -26,8 +26,8 @@ class SolanaPumpfunBot:
         self.marketcap_threshold = 1_000_000
         self.check_interval = 60
         self.monitor_duration = 2 * 60 * 60
-        self.telegram_bot_token = "7586619568:AAE2Au8AhKVDldZuSHbG43ggS3i6lzTVkdA"  # Yeni token
-        self.chat_id = "-1002309534365"
+        self.telegram_bot_token = "7586619568:AAE2Au8AhKVDldZuSHbG43ggS3i6lzTVkdA"
+        self.chat_id = "-1002309534365"  # Varsayılan Chat ID, /start ile güncellenecek
         self.reconnect_delay = 5
         self.running = False
         self.monitor_task = None
@@ -35,12 +35,14 @@ class SolanaPumpfunBot:
         self.dp = Dispatcher(self.bot)
         
     def send_telegram_notification(self, message: str):
+        logging.info("send_telegram_notification fonksiyonu çağrıldı.")
         if not self.telegram_bot_token or not self.chat_id:
             logging.error("Telegram bot token veya chat_id eksik!")
             return
         try:
             url = f"https://api.telegram.org/bot{self.telegram_bot_token}/sendMessage"
-            params = {"chat_id": self.chat_id, "text": message}  # Markdown olmadan
+            params = {"chat_id": self.chat_id, "text": message, "parse_mode": "MarkdownV2"}
+            logging.info(f"Telegram API isteği yapılıyor: {url} - Params: {params}")
             response = requests.post(url, params=params, timeout=10)
             response.raise_for_status()
             logging.info(f"Telegram bildirimi gönderildi: {message}")
@@ -80,29 +82,29 @@ class SolanaPumpfunBot:
                 price_change_h24 = pair.get("priceChange", {}).get("h24", 0)
 
                 message = (
-                    f"Yeni Pump.fun Mezunu Solana Token!\n"
-                    f"Solana @ Raydium\n"
-                    f"Token Adı: {token_name}\n"
-                    f"Token Adresi: {token_address}\n"
-                    f"Yaş: {int(age_minutes)}m\n\n"
-                    f"Token Stats\n"
-                    f"USD: ${price_usd:.4f} {price_change_h24}%\n"
-                    f"MC: ${fdv:,.2f}\n"
-                    f"Vol: ${volume_24h/1000:.1f}K\n"
-                    f"LP: ${liquidity/1000:.1f}K\n"
-                    f"1H: {price_change_h1}% B {pair.get('txns', {}).get('h1', {}).get('buys', 0)} S {pair.get('txns', {}).get('h1', {}).get('sells', 0)}\n\n"
-                    f"Linkler:\n"
-                    f"- DEX: https://dexscreener.com/solana/{pair_address}\n"
-                    f"- PumpFun: https://pump.fun/{token_address}\n"
-                    f"- Bullx: https://bullx.io/terminal?chainId=1399811149&address={token_address}\n"
+                    f"🚀 *Yeni Pump\\.fun Mezunu Solana Token!* \n"
+                    f"🌐 *Solana @ Raydium* \n"
+                    f"🔹 *Token Adı:* {token_name} \n"
+                    f"📍 *Token Adresi:* `{token_address}` \n"
+                    f"🕰️ *Yaş:* {int(age_minutes)}m \n\n"
+                    f"📊 *Token Stats* \n"
+                    f" ├ USD: ${price_usd:.4f} {price_change_h24}% \n"
+                    f" ├ MC: ${fdv:,.2f} \n"
+                    f" ├ Vol: ${volume_24h/1000:.1f}K \n"
+                    f" ├ LP: ${liquidity/1000:.1f}K \n"
+                    f" ├ 1H: {price_change_h1}% 🅑 {pair.get('txns', {}).get('h1', {}).get('buys', 0)} Ⓢ {pair.get('txns', {}).get('h1', {}).get('sells', 0)} \n\n"
+                    f"🔗 *Linkler:* \n"
+                    f" - [DEX](https://dexscreener.com/solana/{pair_address}) \n"
+                    f" - [PumpFun](https://pump.fun/{token_address}) \n"
+                    f" - [Bullx](https://bullx.io/terminal?chainId=1399811149&address={token_address}) \n"
                 )
 
                 if website:
-                    message += f"Website: {website}\n"
+                    message += f"🌍 [Website]({website}) \n"
                 if twitter:
-                    message += f"Twitter: {twitter}\n"
+                    message += f"🐦 [Twitter]({twitter}) \n"
                 if telegram:
-                    message += f"Telegram: {telegram}\n"
+                    message += f"💬 [Telegram]({telegram}) \n"
 
                 logging.info(message)
                 self.send_telegram_notification(message)
@@ -126,6 +128,7 @@ class SolanaPumpfunBot:
                     while self.running:
                         message = await websocket.recv()
                         data = json.loads(message)
+                        logging.info(f"PumpPortal’dan ham veri alındı: {data}")
                         token_address = data.get("mint")
                         if token_address:
                             detect_time = time.time()
@@ -133,6 +136,8 @@ class SolanaPumpfunBot:
                             if self.check_token(token_address, detect_time):
                                 continue
                             self.new_tokens.append((token_address, detect_time))
+                        else:
+                            logging.info("Alınan veride 'mint' anahtarı yok.")
 
                         current_time = time.time()
                         tokens_to_remove = []
@@ -155,9 +160,16 @@ class SolanaPumpfunBot:
                 self.reconnect_delay = min(self.reconnect_delay * 2, 60)
 
     async def start_monitoring(self):
+        logging.info("start_monitoring fonksiyonu çağrıldı.")
         if not self.running:
             self.running = True
-            self.send_telegram_notification("CryptoGemTR topluluğuna hoş geldiniz! Pump.fun’dan Raydium’a geçen 1M+ market cap’li tokenları sizin için buluyorum. Dakikada bir kontrol edip, 2 saat boyunca peşlerinden koşuyorum. Botunuz hizmetinizde!")
+            logging.info("Bot çalışmaya başladı, hoş geldiniz mesajı gönderiliyor.")
+            self.send_telegram_notification(
+                "🚀 *CryptoGemTR topluluğuna hoş geldiniz\\!* \n"
+                "Pump\\.fun’dan Raydium’a geçen 1M+ market cap’li tokenları sizin için buluyorum\\. "
+                "Dakikada bir kontrol edip, 2 saat boyunca peşlerinden koşuyorum\\. "
+                "*Botunuz hizmetinizde\\!*"
+            )
             if self.monitor_task is None or self.monitor_task.done():
                 self.monitor_task = asyncio.create_task(self.monitor_raydium_liquidity())
                 logging.info("Monitoring görevi başlatıldı.")
@@ -165,13 +177,12 @@ class SolanaPumpfunBot:
             logging.info("Bot zaten çalışıyor, tekrar başlatılmadı.")
 
     async def on_start(self, message: types.Message):
-        logging.info(f"/start komutu alındı, Chat ID: {self.chat_id}")
-        await message.reply("Bot çalışıyor!")
+        logging.info(f"/start komutu alındı, Chat ID: {message.chat.id}")
+        self.chat_id = str(message.chat.id)  # Chat ID’yi dinamik olarak güncelle
         await self.start_monitoring()
 
     def run_bot(self):
         self.dp.register_message_handler(self.on_start, commands=['start'])
-        asyncio.ensure_future(self.start_monitoring())
         executor.start_polling(self.dp, skip_updates=True)
 
 if __name__ == "__main__":
