@@ -31,17 +31,15 @@ class SolanaPumpfunBot:
         self.chat_id = None  # /start ile güncellenecek
         self.reconnect_delay = 5
         self.running = False
-        # Application ile botu başlat
         self.application = Application.builder().token(self.telegram_bot_token).build()
 
-    def send_telegram_notification(self, message: str):
+    async def send_telegram_notification(self, message: str):
         logging.info("send_telegram_notification fonksiyonu çağrıldı.")
         if not self.telegram_bot_token or not self.chat_id:
             logging.error("Telegram bot token veya chat_id eksik!")
             return
         try:
-            # Application üzerinden mesaj gönder
-            asyncio.run(self.application.bot.send_message(chat_id=self.chat_id, text=message, parse_mode="Markdown"))
+            await self.application.bot.send_message(chat_id=self.chat_id, text=message, parse_mode="Markdown")
             logging.info(f"Telegram bildirimi gönderildi: {message}")
         except Exception as e:
             logging.error(f"Telegram bildirimi gönderilemedi: {e}")
@@ -104,7 +102,7 @@ class SolanaPumpfunBot:
                     message += f"💬 [Telegram]({telegram}) \n"
 
                 logging.info(message)
-                self.send_telegram_notification(message)
+                asyncio.run(self.send_telegram_notification(message))  # Asenkron çağrı için run
                 self.pairs_data[pair_address] = {'notified': True}
                 return True
             else:
@@ -164,7 +162,7 @@ class SolanaPumpfunBot:
         if not self.running:
             self.running = True
             logging.info("Bot çalışmaya başladı, hoş geldiniz mesajı gönderiliyor.")
-            self.send_telegram_notification(
+            await self.send_telegram_notification(
                 "🚀 *CryptoGemTR topluluğuna hoş geldiniz!* \n"
                 "Pump.fun’dan Raydium’a geçen 1M+ market cap’li tokenları sizin için buluyorum. "
                 "Dakikada bir kontrol edip, 2 saat boyunca peşlerinden koşuyorum. "
@@ -177,10 +175,8 @@ class SolanaPumpfunBot:
             await context.bot.send_message(chat_id=update.message.chat_id, text="Bot zaten çalışıyor!")
 
     def run_bot(self):
-        # CommandHandler ile /start komutunu ekle
         start_handler = CommandHandler('start', self.start)
         self.application.add_handler(start_handler)
-        # Botu başlat
         self.application.run_polling()
 
 if __name__ == "__main__":
