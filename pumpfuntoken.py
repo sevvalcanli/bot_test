@@ -27,7 +27,7 @@ class SolanaPumpfunBot:
         self.check_interval = 60  # 1 dakika
         self.monitor_duration = 2 * 60 * 60  # 2 saat
         self.telegram_bot_token = os.getenv("TELEGRAM_BOT_TOKEN", "7956360443:AAFZdJRht7r-g5oqBF4uCb6ssB6__Pjt21w")
-        self.chat_id = os.getenv("TELEGRAM_CHAT_ID", "-4673727838")
+        self.chat_id = "-4673727838"  # Sabit chat_id
         self.reconnect_delay = 5  # Başlangıçta 5 saniye
         self.running = False  # Botun çalışma durumu
         self.loop = asyncio.get_event_loop()
@@ -79,7 +79,6 @@ class SolanaPumpfunBot:
                 price_change_h1 = pair.get("priceChange", {}).get("h1", 0)
                 price_change_h24 = pair.get("priceChange", {}).get("h24", 0)
 
-                # Sosyal medya bilgilerinin durumunu logla
                 if not website and not twitter and not telegram:
                     logging.info(f"{token_address} için sosyal medya bilgisi bulunamadı.")
                 else:
@@ -125,7 +124,7 @@ class SolanaPumpfunBot:
         uri = "wss://pumpportal.fun/api/data"
         while True:
             try:
-                async with websockets.connect(uri, open_timeout=60) as websocket:
+                async with websockets.connect(uri) as websocket:
                     await websocket.send(json.dumps({"method": "subscribeRaydiumLiquidity"}))
                     logging.info("PumpPortal’a abone olundu, Raydium likidite eklenmeleri dinleniyor...")
                     
@@ -159,6 +158,7 @@ class SolanaPumpfunBot:
                 logging.error(f"WebSocket bağlantısı kesildi: {e}. {self.reconnect_delay} saniye sonra yeniden bağlanılıyor...")
                 await asyncio.sleep(self.reconnect_delay)
                 self.reconnect_delay = min(self.reconnect_delay * 2, 60)
+
     async def start_monitoring(self):
         if not self.running:
             self.running = True
@@ -167,13 +167,13 @@ class SolanaPumpfunBot:
 
     # Aiogram ile /start komutu
     async def on_start(self, message: types.Message):
-        self.chat_id = str(message.chat.id)  # Chat ID’yi dinamik olarak güncelle
+        logging.info(f"/start komutu alındı, Chat ID: {self.chat_id}")  # Log ekle
+        await message.reply("Bot çalışıyor!")  # Test mesajı
         await self.start_monitoring()
 
     def run_bot(self):
         self.dp.register_message_handler(self.on_start, commands=['start'])
         executor.start_polling(self.dp, skip_updates=True)
-
 
 if __name__ == "__main__":
     bot = SolanaPumpfunBot()
