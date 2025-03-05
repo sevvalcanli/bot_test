@@ -22,7 +22,8 @@ class SolanaPumpfunBot:
         self.pair_url = "https://api.dexscreener.com/token-pairs/v1/solana/{tokenAddress}"
         self.pairs_data = {}
         self.new_tokens = deque(maxlen=100)
-        self.marketcap_threshold = 1_000_000
+        self.marketcap_threshold = 1_000_000  # 1M MC üstü için bildirim
+        self.min_marketcap_threshold = 20_000  # 20K MC altı için listeden çıkarma
         self.check_interval = 60
         self.monitor_duration = 2 * 60 * 60
         self.telegram_bot_token = "7586619568:AAE2Au8AhKVDldZuSHbG43ggS3i6lzTVkdA"
@@ -55,10 +56,10 @@ class SolanaPumpfunBot:
             pair = raydium_pairs[0]
             pair_address = pair.get('pairAddress')
             if self.pairs_data.get(pair_address, {}).get('notified', False):
-                return True
+                return True  # Zaten bildirilmişse tekrar kontrol etme
 
-            fdv = float(pair.get('fdv', 0) or 0)
-            if fdv >= self.marketcap_threshold:
+            mc = float(pair.get('marketCap', 0) or 0)  # MC’ye bakıyoruz
+            if mc >= self.marketcap_threshold:  # 1M üstü için bildirim
                 token_name = pair.get('baseToken', {}).get('symbol', 'Unknown')
                 price_usd = float(pair.get('priceUsd', 0) or 0)
                 created_at = pair.get('pairCreatedAt', 0) / 1000
@@ -82,7 +83,7 @@ class SolanaPumpfunBot:
                     f"🕰️ *Yaş:* {int(age_minutes)}m \n\n"
                     f"📊 *Token Stats* \n"
                     f" ├ USD: ${price_usd:.4f} {price_change_h24}% \n"
-                    f" ├ MC: ${fdv:,.2f} \n"
+                    f" ├ MC: ${mc:,.2f} \n"
                     f" ├ Vol: ${volume_24h/1000:.1f}K \n"
                     f" ├ LP: ${liquidity/1000:.1f}K \n"
                     f" ├ 1H: {price_change_h1}% 🅑 {pair.get('txns', {}).get('h1', {}).get('buys', 0)} Ⓢ {pair.get('txns', {}).get('h1', {}).get('sells', 0)} \n\n"
@@ -100,12 +101,15 @@ class SolanaPumpfunBot:
                     message += f"💬 [Telegram]({telegram}) \n"
 
                 logging.info(message)
-                await self.send_telegram_notification(message)  # Asenkron çağrı
+                await self.send_telegram_notification(message)
                 self.pairs_data[pair_address] = {'notified': True}
                 return True
+            elif mc < self.min_marketcap_threshold:  # 20K altına düşerse çıkarma sinyali
+                logging.info(f"MC 20K altına düştü, listeden çıkarılıyor: {token_address} - MC: {mc}")
+                return False  # Listeden çıkarılacak ama bildirilmeyecek
             else:
-                logging.info(f"Kontrol: {token_address} - FDV: {fdv}")
-                return False
+                logging.info(f"Kontrol: {token_address} - MC: {mc}")
+                return False  # 20K-1M arasında, kontrol devam etsin
         except Exception as e:
             logging.error(f"Token kontrol hatası: {token_address} - {e}")
             return False
@@ -122,24 +126,27 @@ class SolanaPumpfunBot:
                         message = await websocket.recv()
                         data = json.loads(message)
                         token_address = data.get("mint")
-                        if token_address:  # Sadece mint varsa işlem yap
+                        if token_address:  # Yeni token geldiyse
                             detect_time = time.time()
                             logging.info(f"Raydium’a likidite eklendi: {token_address} - Tespit zamanı: {datetime.fromtimestamp(detect_time)}")
-                            # Token zaten listede mi diye kontrol et
                             if not any(t[0] == token_address for t in self.new_tokens):
                                 if await self.check_token(token_address, detect_time):
                                     continue
                                 self.new_tokens.append((token_address, detect_time))
 
+                        # Her saniye listedeki tokenları kontrol et
                         current_time = time.time()
                         tokens_to_remove = []
                         for token_address, detect_time in list(self.new_tokens):
                             if current_time - detect_time >= self.monitor_duration:
                                 tokens_to_remove.append((token_address, detect_time))
                                 logging.info(f"Token izleme süresi doldu: {token_address}")
-                            elif current_time - detect_time >= self.check_interval:
-                                if await self.check_token(token_address, detect_time):
+                            else:
+                                result = await self.check_token(token_address, detect_time)
+                                if result:  # 1M üstüne çıktıysa çıkar
                                     tokens_to_remove.append((token_address, detect_time))
+                                elif result is False and float(requests.get(self.pair_url.format(tokenAddress=token_address)).json()[0].get('marketCap', 0) or 0) < self.min_marketcap_threshold:
+                                    tokens_to_remove.append((token_address, detect_time))  # 20K altına düştüyse çıkar
 
                         for token in tokens_to_remove:
                             if token in self.new_tokens:
