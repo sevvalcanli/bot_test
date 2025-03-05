@@ -24,8 +24,8 @@ class SolanaPumpfunBot:
         self.new_tokens = deque(maxlen=100)
         self.marketcap_threshold = 1_000_000  # 1M MC üstü için bildirim
         self.min_marketcap_threshold = 20_000  # 20K MC altı için listeden çıkarma
-        self.check_interval = 60
-        self.monitor_duration = 2 * 60 * 60
+        self.check_interval = 60  # Her dakika periyodik kontrol
+        self.monitor_duration = 2 * 60 * 60  # 2 saat izleme süresi
         self.telegram_bot_token = "7586619568:AAE2Au8AhKVDldZuSHbG43ggS3i6lzTVkdA"
         self.chat_id = "-1002309534365"
         self.reconnect_delay = 5
@@ -106,10 +106,10 @@ class SolanaPumpfunBot:
                 return True
             elif mc < self.min_marketcap_threshold:  # 20K altına düşerse çıkarma sinyali
                 logging.info(f"MC 20K altına düştü, listeden çıkarılıyor: {token_address} - MC: {mc}")
-                return False  # Listeden çıkarılacak ama bildirilmeyecek
+                return False
             else:
-                logging.info(f"Kontrol: {token_address} - MC: {mc}")
-                return False  # 20K-1M arasında, kontrol devam etsin
+                logging.debug(f"Kontrol: {token_address} - MC: {mc}")  # Daha az log için DEBUG’e düşür
+                return False
         except Exception as e:
             logging.error(f"Token kontrol hatası: {token_address} - {e}")
             return False
@@ -133,26 +133,6 @@ class SolanaPumpfunBot:
                                 if await self.check_token(token_address, detect_time):
                                     continue
                                 self.new_tokens.append((token_address, detect_time))
-
-                        # Her saniye listedeki tokenları kontrol et
-                        current_time = time.time()
-                        tokens_to_remove = []
-                        for token_address, detect_time in list(self.new_tokens):
-                            if current_time - detect_time >= self.monitor_duration:
-                                tokens_to_remove.append((token_address, detect_time))
-                                logging.info(f"Token izleme süresi doldu: {token_address}")
-                            else:
-                                result = await self.check_token(token_address, detect_time)
-                                if result:  # 1M üstüne çıktıysa çıkar
-                                    tokens_to_remove.append((token_address, detect_time))
-                                elif result is False and float(requests.get(self.pair_url.format(tokenAddress=token_address)).json()[0].get('marketCap', 0) or 0) < self.min_marketcap_threshold:
-                                    tokens_to_remove.append((token_address, detect_time))  # 20K altına düştüyse çıkar
-
-                        for token in tokens_to_remove:
-                            if token in self.new_tokens:
-                                self.new_tokens.remove(token)
-
-                        await asyncio.sleep(1)
             except websockets.ConnectionClosed as e:
                 logging.error(f"WebSocket bağlantısı kesildi (ConnectionClosed): {e}. {self.reconnect_delay} saniye sonra yeniden bağlanılıyor...")
                 await asyncio.sleep(self.reconnect_delay)
@@ -162,6 +142,27 @@ class SolanaPumpfunBot:
                 await asyncio.sleep(self.reconnect_delay)
                 self.reconnect_delay = min(self.reconnect_delay * 2, 60)
 
+    async def periodic_check_tokens(self):
+        while self.running:
+            logging.info("Periyodik token kontrolü başlatıldı...")
+            current_time = time.time()
+            tokens_to_remove = []
+            for token_address, detect_time in list(self.new_tokens):
+                if current_time - detect_time >= self.monitor_duration:
+                    tokens_to_remove.append((token_address, detect_time))
+                    logging.info(f"Token izleme süresi doldu: {token_address}")
+                else:
+                    result = await self.check_token(token_address, detect_time)
+                    if result:  # 1M üstüne çıktıysa çıkar
+                        tokens_to_remove.append((token_address, detect_time))
+                    elif result is False and float(requests.get(self.pair_url.format(tokenAddress=token_address)).json()[0].get('marketCap', 0) or 0) < self.min_marketcap_threshold:
+                        tokens_to_remove.append((token_address, detect_time))  # 20K altına düştüyse çıkar
+
+            for token in tokens_to_remove:
+                if token in self.new_tokens:
+                    self.new_tokens.remove(token)
+            await asyncio.sleep(self.check_interval)  # Her dakika kontrol et
+
     async def start_monitoring(self):
         logging.info("Bot çalışmaya başladı, hoş geldiniz mesajı gönderiliyor.")
         self.running = True
@@ -170,7 +171,11 @@ class SolanaPumpfunBot:
             "Pump.fun’dan Raydium’a geçen potansiyelli tokenları sizin için buluyorum. "
             "*Botunuz hizmetinizde!*"
         )
-        await self.monitor_raydium_liquidity()
+        # WebSocket dinlemesini ve periyodik kontrolü paralel çalıştır
+        await asyncio.gather(
+            self.monitor_raydium_liquidity(),
+            self.periodic_check_tokens()
+        )
 
     def run_bot(self):
         asyncio.run(self.start_monitoring())
