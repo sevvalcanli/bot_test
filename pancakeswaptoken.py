@@ -92,7 +92,7 @@ class BSCPancakeSwapBot:
         self.min_marketcap_threshold = 20_000  # Listeye ekleme eşiği
         self.reconnect_delay = 5
         self.telegram_bot_token = "7623165271:AAFbGUboSDk2R8xcmsKduYAx48sPACi5wK0"
-        self.chat_id = "-4758339028"
+        self.chat_id = "-1002562065810"
         self.running = False
         self.wbnb_address = "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c"  # WBNB adresi
         self.usdt_address = "0x55d398326f99059fF775485246999027B3197955"  # USDT adresi
